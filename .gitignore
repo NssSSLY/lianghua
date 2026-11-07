@@ -1,0 +1,15 @@
+# 虚拟环境与缓存
+.venv/
+__pycache__/
+*.pyc
+
+# 行情数据、回测结果、个人持仓与计划都留在本地
+data/
+results/
+plans/
+logs/
+
+# 本机配置
+.claude/
+config.local.yaml
+.env

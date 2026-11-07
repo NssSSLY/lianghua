@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>短线看板</title>
+<link rel="stylesheet" href="/static/style.css">
+<script src="/static/vendor/echarts.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 17l5-6 4 3 7-9" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">短线看板</div>
+        <div class="brand-sub">A股 · 情绪 · 主线 · 低吸</div>
+      </div>
+    </div>
+    <nav id="nav">
+      <a data-page="overview" class="active"><span class="ico">◎</span>总览</a>
+      <a data-page="limitup"><span class="ico">▲</span>涨停复盘</a>
+      <a data-page="lianban"><span class="ico">≣</span>连板龙虎榜</a>
+      <a data-page="themes"><span class="ico">✦</span>题材热榜</a>
+      <a data-page="boards"><span class="ico">▦</span>板块资金</a>
+      <a data-page="stock"><span class="ico">⌇</span>个股K线</a>
+      <a data-page="watch"><span class="ico">◉</span>盘中提示</a>
+      <a data-page="flow"><span class="ico">⇅</span>资金排行</a>
+      <a data-page="strategies"><span class="ico">◷</span>策略中心</a>
+      <a data-page="jobs"><span class="ico">≡</span>任务与数据源</a>
+    </nav>
+    <div class="side-foot">
+      <div class="disclaimer">策略尚未验证出正收益，页面内容仅供研究复盘，不构成投资建议。</div>
+    </div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <div class="title-wrap">
+        <h1 id="page-title">总览</h1>
+        <div class="chips">
+          <span class="chip" id="chip-date">数据 —</span>
+          <span class="chip" id="chip-archive">归档 —</span>
+          <span class="chip" id="chip-em">东财 —</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" data-job="pick" title="根据最新数据生成次日低吸计划">生成计划</button>
+        <button class="btn primary" data-job="sync" title="归档今日涨停池/资金流，并增量更新全市场日线">
+          <svg viewBox="0 0 24 24" width="15" height="15"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          同步数据
+        </button>
+        <button class="btn icon" id="theme-btn" title="切换深色/浅色">◐</button>
+      </div>
+    </header>
+
+    <!-- ================= 总览 ================= -->
+    <section class="page active" id="page-overview">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid g-2-1">
+        <div class="card">
+          <div class="card-h">
+            <h3>大盘指数</h3>
+            <div class="seg" id="index-seg"></div>
+          </div>
+          <div class="chart h320" id="ch-index"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>主线题材</h3><div class="seg" id="ml-src"><button data-v="ths" class="on">同花顺涨停原因</button><button data-v="sina">新浪板块</button></div></div>
+          <div class="list" id="mainline-list"></div>
+        </div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card">
+          <div class="card-h"><h3>情绪周期</h3><span class="hint">情绪分 · 涨停 · 跌停</span></div>
+          <div class="chart h280" id="ch-senti"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>赚钱效应</h3><span class="hint">昨日涨停今日溢价 · 炸板率 · 最高板</span></div>
+          <div class="chart h280" id="ch-effect"></div>
+        </div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card">
+          <div class="card-h"><h3>连板梯队</h3><span class="hint" id="ladder-hint"></span></div>
+          <div class="ladder" id="ladder"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>主线板块涨停数走势</h3><span class="hint">近40个交易日</span></div>
+          <div class="chart h280" id="ch-boardhist"></div>
+        </div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card">
+          <div class="card-h"><h3 id="cand-title">策略候选</h3><div class="seg" id="cand-tabs"></div></div>
+          <div class="hint" id="cand-hint" style="margin:-4px 0 8px"></div>
+          <div id="cand"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>两市资金流</h3><span class="hint">主力 / 超大单 / 大单 / 中单 / 小单</span></div>
+          <div class="chart h280" id="ch-mflow"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 涨停复盘 ================= -->
+    <section class="page" id="page-limitup">
+      <div class="card">
+        <div class="card-h"><h3>选择日期</h3><span class="hint" id="lu-source"></span></div>
+        <div class="date-chips" id="lu-dates"></div>
+      </div>
+      <div class="kpis" id="lu-kpis"></div>
+      <div class="grid g-1-2">
+        <div class="card">
+          <div class="card-h"><h3>涨停行业分布</h3></div>
+          <div class="chart h420" id="ch-lu-ind"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>涨停池</h3><input class="search sm" id="lu-filter" placeholder="筛选名称/行业"></div>
+          <div class="table-wrap h420" id="lu-table"></div>
+        </div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card"><div class="card-h"><h3>炸板池</h3></div><div class="table-wrap h300" id="lu-zb"></div></div>
+        <div class="card"><div class="card-h"><h3>跌停池</h3></div><div class="table-wrap h300" id="lu-dt"></div></div>
+      </div>
+    </section>
+
+    <!-- ================= 连板龙虎榜 ================= -->
+    <section class="page" id="page-lianban">
+      <div class="card">
+        <div class="card-h">
+          <div class="row-gap">
+            <select class="select" id="lb-date"></select>
+            <div class="seg" id="lb-min"><button data-v="2" class="on">≥2板</button><button data-v="3">≥3板</button><button data-v="4">≥4板</button><button data-v="5">≥5板</button></div>
+          </div>
+          <span class="hint">基于本地日线计算（任何已下载交易日都可查）· 点击行查看龙虎榜营业部席位</span>
+        </div>
+      </div>
+      <div class="kpis" id="lb-kpis"></div>
+      <div class="grid g-2-1">
+        <div class="card"><div class="card-h"><h3>连板股 × 龙虎榜</h3></div><div class="table-wrap h460" id="lb-table"></div></div>
+        <div class="card"><div class="card-h"><h3>连板高度走势</h3><span class="hint">近15个交易日</span></div><div class="chart h460" id="ch-lb-height"></div></div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card"><div class="card-h"><h3>ST 涨停</h3><span class="hint" id="lb-st-note"></span></div><div class="table-wrap h300" id="lb-st-zt"></div></div>
+        <div class="card"><div class="card-h"><h3>ST 跌停</h3></div><div class="table-wrap h300" id="lb-st-dt"></div></div>
+      </div>
+    </section>
+
+    <!-- ================= 题材热榜（同花顺） ================= -->
+    <section class="page" id="page-themes">
+      <div class="card">
+        <div class="card-h">
+          <div class="row-gap">
+            <button class="btn sm" id="th-prev">‹ 前一日</button>
+            <select class="select" id="th-date"></select>
+            <button class="btn sm" id="th-next">后一日 ›</button>
+          </div>
+          <span class="hint" id="th-src">同花顺涨停池，约一年历史 + 每日归档</span>
+        </div>
+      </div>
+      <div class="kpis" id="th-kpis"></div>
+      <div class="grid g-1-1">
+        <div class="card"><div class="card-h"><h3>题材强度排行</h3><span class="hint" id="th-rank-hint"></span></div><div class="table-wrap h460" id="th-rank"></div></div>
+        <div class="card"><div class="card-h"><h3>题材走势</h3><span class="hint">近30个交易日 · 每天含该标签的涨停家数</span></div><div class="chart h460" id="ch-th-trend"></div></div>
+      </div>
+      <div class="grid g-1-2">
+        <div class="card"><div class="card-h"><h3>连板天梯（同花顺）</h3></div><div class="ladder" id="th-ladder" style="max-height:460px"></div></div>
+        <div class="card"><div class="card-h"><h3>涨停原因明细</h3><input class="search sm" id="th-filter" placeholder="筛选名称 / 题材"></div><div class="table-wrap h460" id="th-pool"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-h">
+          <div class="seg" id="th-hot-kind"><button data-v="stock" class="on">个股人气榜</button><button data-v="concept">热门概念</button><button data-v="industry">热门行业</button></div>
+          <div class="row-gap"><select class="select" id="th-hot-date"></select><span class="hint" id="th-hot-src"></span></div>
+        </div>
+        <div class="table-wrap h460" id="th-hot"></div>
+      </div>
+    </section>
+
+    <!-- ================= 板块资金 ================= -->
+    <section class="page" id="page-boards">
+      <div class="card">
+        <div class="card-h">
+          <div class="seg" id="bk-kind">
+            <button data-v="concept" class="on">概念板块</button><button data-v="industry">行业板块</button>
+          </div>
+          <div class="seg" id="bk-period">
+            <button data-v="即时" class="on">今日</button><button data-v="3日排行">3日</button><button data-v="5日排行">5日</button><button data-v="10日排行">10日</button><button data-v="20日排行">20日</button>
+          </div>
+        </div>
+        <div class="chart h360" id="ch-bk-rank"></div>
+      </div>
+      <div class="grid g-1-1">
+        <div class="card">
+          <div class="card-h"><h3>板块列表</h3><input class="search sm" id="bk-filter" placeholder="搜索板块"></div>
+          <div class="table-wrap h460" id="bk-table"></div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3 id="bk-k-title">板块指数</h3><span class="hint">点击左侧板块查看</span></div>
+          <div class="chart h460" id="ch-bk-k"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 个股 ================= -->
+    <section class="page" id="page-stock">
+      <div class="card stock-head">
+        <div class="search-box">
+          <input class="search" id="stock-q" placeholder="输入代码或名称，如 600838 / 九百" autocomplete="off">
+          <div class="suggest" id="stock-suggest"></div>
+        </div>
+        <div class="stock-info" id="stock-info"></div>
+        <div class="seg" id="stock-days">
+          <button data-v="120">半年</button><button data-v="250" class="on">一年</button><button data-v="500">两年</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ta-bar">
+          <div class="ta-group"><span class="hint">主图</span><div class="seg" id="ta-main"></div></div>
+          <div class="ta-group"><span class="hint">副图（最多3个）</span><div class="chips-sel" id="ta-subs"></div></div>
+        </div>
+        <div class="chart" id="ch-stock" style="height:560px"></div>
+        <div class="legend-note">▲ 涨停　◆ 当前策略信号　● 龙虎榜（红=净买入 绿=净卖出，点击查看营业部席位）　· 拖动平移，Shift+滚轮缩放</div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>资金流向</h3><span class="hint" id="flow-hint"></span></div>
+        <div class="chart h300" id="ch-stock-flow"></div>
+      </div>
+    </section>
+
+    <!-- ================= 资金排行 ================= -->
+    <section class="page" id="page-watch">
+      <div class="card">
+        <div class="card-h"><h3>监控状态</h3>
+          <div class="wt-tools">
+            <button class="btn sm" id="wt-notify">开启桌面提醒</button>
+            <button class="btn sm primary" id="wt-toggle">启动监控</button>
+          </div>
+        </div>
+        <p class="wt-note" id="wt-status">—</p>
+        <p class="wt-note"><b>只提示、只记录，不会下单。</b>这条规则还没有被验证能赚钱，先用来积累数据，不建议据此投入真钱。</p>
+      </div>
+      <div class="kpis" id="wt-kpis"></div>
+      <div class="card">
+        <div class="card-h"><h3>卖出提示</h3>
+          <div class="wt-tools"><button class="btn sm" id="wt-add">记录我的买入</button></div>
+        </div>
+        <div class="table-wrap" id="wt-prompts"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>封板事件</h3>
+          <div class="wt-tools">
+            <select id="wt-day" class="select"></select>
+            <div class="seg" id="wt-filter"><button class="on" data-v="pick">只看候选</button><button data-v="seal">全部封板</button><button data-v="all">含炸板</button></div>
+          </div>
+        </div>
+        <div class="table-wrap h560" id="wt-events"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>积累结果</h3></div>
+        <p class="wt-note" id="wt-verdict">—</p>
+        <div class="table-wrap" id="wt-stats"></div>
+      </div>
+    </section>
+
+    <section class="page" id="page-flow">
+      <div class="card">
+        <div class="card-h"><h3>个股资金净流入排行（同花顺，每日归档）</h3><select id="flow-date" class="select"></select></div>
+        <div class="grid g-1-1 inner">
+          <div><div class="sub-h up">净流入前30</div><div class="table-wrap h560" id="flow-in"></div></div>
+          <div><div class="sub-h down">净流出前30</div><div class="table-wrap h560" id="flow-out"></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 策略中心 ================= -->
+    <section class="page" id="page-strategies">
+      <div class="card">
+        <div class="card-h">
+          <div><h3>策略对比</h3><div class="hint" style="margin-top:2px">同一套 A 股回测规则（T+1、涨跌停、最低5元佣金、印花税、滑点），2023 起；样本内 2023-2024 / 样本外 2025 起。<b>先看是否跑赢「随机选股基准」</b></div></div>
+          <div class="row-gap">
+            <div class="seg" id="st-cat"><button data-v="all" class="on">全部</button><button data-v="signal">短线信号类</button><button data-v="rebalance">定期调仓类</button></div>
+            <button class="btn primary sm" data-job="compare">全部回测</button>
+            <a class="btn sm" href="/api/strategy_template">下载模板</a>
+            <label class="btn sm">导入策略 .py<input type="file" id="st-upload" accept=".py" hidden></label>
+            <label class="hint"><input type="checkbox" id="st-overwrite"> 覆盖同名</label>
+          </div>
+        </div>
+        <div class="table-wrap" id="st-table"></div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>资金曲线叠加（净值）</h3><span class="hint">灰色虚线 = 中证1000 指数</span></div>
+        <div class="chart h420" id="ch-st-nav"></div>
+      </div>
+      <div class="grid g-2-1">
+        <div class="card"><div class="card-h"><h3 id="st-d-title">策略详情</h3><span class="hint">在上表点击策略名</span></div><div class="chart h360" id="ch-st-eq"></div></div>
+        <div class="card"><div class="card-h"><h3>分年度</h3></div><div class="chart h360" id="ch-st-year"></div></div>
+      </div>
+      <div class="card"><div class="card-h"><h3>成交明细</h3></div><div class="table-wrap h460" id="st-trades"></div></div>
+    </section>
+
+    <!-- ================= 任务 ================= -->
+    <section class="page" id="page-jobs">
+      <div class="grid g-1-2">
+        <div class="card">
+          <div class="card-h"><h3>任务</h3></div>
+          <div class="job-list">
+            <div class="job-item"><div><b>同步数据</b><p>归档东财涨停/炸板/跌停池、龙虎榜、资金流快照，再增量更新全市场日线。建议每个交易日 17:30 后运行。</p></div><button class="btn primary sm" data-job="sync">运行</button></div>
+            <div class="job-item"><div><b>同步数据（备用源）</b><p>默认用东方财富日线（最快）；东财被限流时用这个，改为新浪优先（失败仍会自动回退其他源）。</p></div><button class="btn sm" data-job="sync_tx">运行</button></div>
+            <div class="job-item"><div><b>只归档</b><p>只保存当天涨停池、龙虎榜与资金流（东财池子 2~3 周后就查不到）。</p></div><button class="btn sm" data-job="archive">运行</button></div>
+            <div class="job-item"><div><b>生成次日计划</b><p>按策略规则输出明日候选，保存到 plans/。</p></div><button class="btn sm" data-job="pick">运行</button></div>
+            <div class="job-item"><div><b>策略对比回测</b><p>回测 strategies/ 下全部策略，结果在「策略中心」查看。</p></div><button class="btn sm" data-job="compare">运行</button></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h"><h3>运行日志</h3><span class="badge" id="job-state">空闲</span></div>
+          <pre class="log" id="job-log">还没有运行任务。</pre>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>数据源状态</h3><button class="btn sm" id="src-check">检测</button></div>
+        <div class="table-wrap" id="src-table"><div class="empty">点「检测」测试各数据源连通性（开着 VPN/代理时部分国内接口可能被断开）</div></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="drawer-mask" id="drawer-mask"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-h"><h3 id="drawer-title"></h3><button class="btn icon" id="drawer-close">✕</button></div>
+  <div class="drawer-b" id="drawer-body"></div>
+</div>
+
+<script src="/static/app.js"></script>
+<script src="/static/info.js"></script>
+</body>
+</html>

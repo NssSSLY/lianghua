@@ -1,0 +1,7 @@
+akshare>=1.17
+pandas>=2.0
+numpy
+pyyaml
+matplotlib
+flask
+# 实盘需要 xtquant：从银河 MiniQMT 安装目录或 pip install xtquant 获取（仅支持 Windows，Python 3.6~3.12）

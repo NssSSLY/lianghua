@@ -1,0 +1,77 @@
+# ============ 全局配置 ============
+data_dir: data            # 本地缓存目录
+download_start: "2022-06-01"   # 历史数据下载起点（需早于回测起点，留出指标预热期）
+
+# 可交易板块：main=沪深主板 gem=创业板(需10万+2年) star=科创板(需50万+2年)；北交所排除
+markets: [main, gem]
+active_strategy: etf_momentum_monthly   # 每日计划/实盘用哪个策略（strategies/ 下的文件名）
+overview_strategies: []   # 总览「策略候选」卡片里可切换查看的其他策略（看板策略中心可勾选）
+include_st: true         # 下载并展示同板块 ST 股（看板 ST 涨跌停统计用）；策略选股始终剔除 ST
+
+# ---------- 回测 ----------
+backtest:
+  start: "2023-01-01"
+  end: "2026-10-23"
+  init_cash: 50000        # 初始资金（小资金）
+  max_positions: 2        # 最多同时持仓只数
+  commission: 0.00025     # 佣金费率（双边）
+  min_commission: 5       # 单笔最低佣金（元）
+  stamp_tax: 0.0005       # 印花税（卖出）
+  transfer_fee: 0.00001   # 过户费（双边）
+  slippage: 0.002         # 单边滑点
+
+# ---------- 情绪周期（总开关） ----------
+sentiment:
+  min_score: 40           # 情绪分低于此值空仓不开新仓
+  full_score: 70          # 情绪分高于此值满仓位，介于两者之间半仓
+
+# ---------- 低吸策略参数 ----------
+strategy:
+  # 候选池：近 N 日内出现过 >= min_boards 连板的强势股（龙头/热点前排）
+  lookback_days: 10
+  min_boards: 2
+  # 低吸触发：从近期高点回撤到这个区间
+  pullback_min: 0.08      # 回撤至少 8%
+  pullback_max: 0.25      # 回撤不超过 25%（太深=走坏）
+  # 信号日（T日）条件：首阴/缩量调整
+  max_days_after_board: 3 # 距最后一个涨停不超过 N 个交易日
+  max_down_days: 1        # 最后一个涨停之后的收跌天数（1=首阴，2=允许第二根阴线）
+  max_signal_pct: 0.0     # T 日收跌（首阴）
+  min_signal_pct: -0.095  # 排除跌停
+  vol_shrink: 1.0         # T 日成交量 <= 前一日成交量 * vol_shrink（缩量）
+  ma_support: 10          # 收盘不跌破 N 日均线
+  max_float_mv: 20000000000   # 流通市值上限（元），只做中小盘
+  min_amount: 100000000       # T 日成交额下限（元），保证流动性
+  # 买入（T+1 日）：开盘挂单价 = T日收盘 * (1 + buy_offset)，盘中最低价触及即成交
+  buy_offset: -0.02
+  max_gap_up: 0.03        # T+1 高开超过 3% 放弃（不追高）
+  # 卖出
+  take_profit: 0.08       # 盘中触及 +8% 止盈
+  stop_loss: -0.05        # 盘中触及 -5% 止损（同一天止盈止损都触及时，保守按止损算）
+  max_hold_days: 3        # 最长持有交易日，到期收盘卖出
+  hold_if_limit_up: true  # 到期当天若涨停封住，继续持有
+  skip_limit_down_open: true  # T+1 跌停开盘不接
+  # 主线板块过滤（新浪概念+行业板块；注意成分股是当前名单，回测有前视偏差，偏乐观）
+  use_board: true
+  board_kinds: [概念]     # 可加 行业；行业板块太粗，默认只用概念
+  board_window: 3        # 用近 N 日板块涨停总数衡量强度
+  board_top_k: 5          # 排名前 K 的板块算主线
+  board_min_zt: 6         # 且近 N 日涨停总数 >= 这个数
+  board_need_today_zt: 1  # 且 T 日板块内仍有 >= 这个数的涨停（主线未退潮）
+  leader_only: true       # 只做主线板块里连板最高的龙头
+  # 龙虎榜加分：近 N 日龙虎榜净买入为正的优先（仅实盘/近期数据可用）
+  use_lhb: true
+
+# ---------- 题材识别（同花顺涨停原因，按当时数据，约一年历史） ----------
+themes:
+  window: 3               # 近 N 日含该标签的涨停家数 = 题材强度
+  top_k: 5                # 强度前 K 个标签算主线
+  min_count: 4            # 且近 N 日涨停 >= 这个数，且当天仍有涨停
+
+# ---------- 实盘（MiniQMT） ----------
+live:
+  qmt_path: 'D:\银河证券QMT\userdata_mini'   # 改成你银河 MiniQMT 的 userdata_mini 路径
+  account_id: "你的资金账号"
+  session_id: 20261026
+  dry_run: true           # true=只打印不下单；确认无误后再改 false
+  per_order_cash: 20000   # 单只股票最大下单金额
