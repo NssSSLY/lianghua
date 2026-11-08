@@ -13,7 +13,7 @@ import time
 import pandas as pd
 
 from quant.config import load_config
-from quant import data, etf
+from quant import data, etf, fundamentals
 
 
 def default_end() -> str:
@@ -31,6 +31,7 @@ def main():
     ap.add_argument("--workers", type=int, default=4)
     ap.add_argument("--no-lhb", action="store_true")
     ap.add_argument("--no-etf", action="store_true")
+    ap.add_argument("--no-fund", action="store_true")
     ap.add_argument("--source", choices=["em", "sina", "tx"], default="em",
                     help="优先数据源（失败自动回退其他源）：em=东方财富（默认，最快）/ sina / tx")
     args = ap.parse_args()
@@ -58,6 +59,10 @@ def main():
         print("更新龙虎榜 ...")
         lhb = data.load_lhb(ddir, cfg["download_start"], args.end)
         print(f"龙虎榜记录 {len(lhb)} 条")
+
+    if not args.no_fund and not args.codes:
+        print("更新业绩快报 ...")
+        fundamentals.update(ddir)
 
 
 if __name__ == "__main__":

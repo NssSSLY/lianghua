@@ -241,7 +241,7 @@
   });
 
   // ------------------------------------------------------------ 路由
-  const TITLES = { overview: "总览", limitup: "涨停复盘", lianban: "连板龙虎榜", themes: "题材热榜", boards: "板块资金", stock: "个股K线", watch: "盘中提示", flow: "资金排行", strategies: "策略中心", jobs: "任务与数据源" };
+  const TITLES = { overview: "总览", limitup: "涨停复盘", lianban: "连板龙虎榜", themes: "题材热榜", boards: "板块资金", stock: "个股K线", observe: "观察指标", watch: "盘中提示", flow: "资金排行", strategies: "策略中心", jobs: "任务与数据源" };
   const loaders = {};
   let current = "overview";
   function go(page, arg) {
@@ -1145,6 +1145,41 @@
     }
     pollJob.wasRunning = j.state === "running";
   }
+
+  // ------------------------------------------------------------ 观察指标
+  loaders.observe = async () => {
+    let d;
+    try { d = await api("/api/observe"); } catch (e) { $("#ob-kpis").innerHTML = `<div class="kpi">${esc(e.message)}</div>`; return; }
+    const t = theme(), b = d.breadth;
+    const level = b.now < b.threshold ? ["极度恐慌", "down"] : b.now > 80 ? ["普遍走强", "up"] : ["正常", ""];
+    $("#ob-kpis").innerHTML = `
+      <div class="kpi" data-info="ob_breadth"><div class="k">站上60日线 · ${d.date}</div><div class="v">${b.now.toFixed(1)}%</div></div>
+      <div class="kpi" data-info="ob_breadth"><div class="k">宽度状态</div><div class="v ${level[1]}">${level[0]}</div></div>
+      <div class="kpi" data-info="ob_breadth"><div class="k">最近一次低于${b.threshold}%</div><div class="v" style="font-size:18px">${b.last_low || "近两年没有"}</div></div>
+      <div class="kpi" data-info="ob_acc"><div class="k">业绩最新报告期</div><div class="v" style="font-size:18px">${d.quarter ? fmtDate(d.quarter) : "—"}</div></div>`;
+    chart("ch-ob-breadth").setOption(base({
+      grid: { left: 44, right: 24, top: 24, bottom: 28 },
+      legend: { show: false },
+      xAxis: axis("category", { data: b.dates }),
+      yAxis: axis("value", { min: 0, max: 100, axisLabel: { formatter: "{value}%", color: t.text3, fontSize: 11 } }),
+      dataZoom: [{ type: "inside", start: 40, end: 100 }],
+      series: [{ name: "站上60日线", type: "line", data: b.pct, showSymbol: false, lineStyle: { width: 1.8, color: t.accent }, itemStyle: { color: t.accent },
+        areaStyle: { color: t.accent, opacity: .08 },
+        markLine: { silent: true, symbol: "none", lineStyle: { color: t.down, type: "dashed" }, label: { color: t.down, fontSize: 10, position: "insideEndTop", formatter: "极度恐慌线 {c}%" }, data: [{ yAxis: b.threshold }] } }],
+    }), true);
+    $("#ob-breadth-note").textContent = "历史上低于 10% 之后 60 天平均 +6.6%（10 次里 7 次为正），只说明恐慌时不宜割肉，不是买入信号。";
+    $("#ob-acc-hint").textContent = d.accel.length ? `最新一期报告，前 ${d.accel.length} 只；只作观察` : "";
+    const p1 = (v) => `<span class="${cls(v)}">${isNum(v) ? (v > 0 ? "+" : "") + v.toFixed(1) + "%" : "—"}</span>`;
+    const pp = (v) => `<span class="${cls(v)}">${isNum(v) ? (v > 0 ? "+" : "") + v.toFixed(1) : "—"}</span>`;
+    table("ob-acc", [
+      { k: "name", t: "股票", f: stockLink }, { k: "industry", t: "行业", f: (v) => esc(v || "—") },
+      { k: "q", t: "报告期", f: fmtDate }, { k: "ann_date", t: "公告日", f: (v) => esc(v || "—") },
+      { k: "rev_yoy", t: "营收同比", n: 1, f: p1 }, { k: "racc", t: "营收加速", n: 1, f: pp },
+      { k: "np_yoy", t: "净利同比", n: 1, f: p1 }, { k: "acc", t: "净利加速", n: 1, f: pp },
+      { k: "roe", t: "ROE", n: 1, f: (v) => (isNum(v) ? v.toFixed(1) + "%" : "—") },
+      { k: "price", t: "股价", n: 1, f: (v) => (isNum(v) ? v.toFixed(2) : "—") }, { k: "ret20", t: "近20日", n: 1, f: p1 },
+    ], d.accel, { emptyText: "还没有业绩数据：点「同步数据」后会下载最近 6 个报告期" });
+  };
 
   // ------------------------------------------------------------ 盘中提示
   let wtDay = null, wtFilter = "pick", wtTimer = null, wtFirst = true;

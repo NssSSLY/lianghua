@@ -26,6 +26,7 @@
       <a data-page="themes"><span class="ico">✦</span>题材热榜</a>
       <a data-page="boards"><span class="ico">▦</span>板块资金</a>
       <a data-page="stock"><span class="ico">⌇</span>个股K线</a>
+      <a data-page="observe"><span class="ico">◈</span>观察指标</a>
       <a data-page="watch"><span class="ico">◉</span>盘中提示</a>
       <a data-page="flow"><span class="ico">⇅</span>资金排行</a>
       <a data-page="strategies"><span class="ico">◷</span>策略中心</a>
@@ -232,6 +233,19 @@
     </section>
 
     <!-- ================= 资金排行 ================= -->
+    <section class="page" id="page-observe">
+      <div class="kpis" id="ob-kpis"></div>
+      <div class="card">
+        <div class="card-h"><h3>市场宽度：站上 60 日线的股票比例</h3></div>
+        <div class="chart h300" id="ch-ob-breadth"></div>
+        <p class="wt-note" id="ob-breadth-note"></p>
+      </div>
+      <div class="card">
+        <div class="card-h"><h3>业绩加速名单</h3><span class="wt-note" id="ob-acc-hint"></span></div>
+        <div class="table-wrap h560" id="ob-acc"></div>
+      </div>
+    </section>
+
     <section class="page" id="page-watch">
       <div class="card">
         <div class="card-h"><h3>监控状态</h3>

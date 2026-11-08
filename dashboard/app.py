@@ -19,7 +19,7 @@ from flask import Flask, Response, request, send_from_directory
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from quant import backtest, board_watch, boards, data, market, sentiment, ta, ths  # noqa: E402
+from quant import backtest, board_watch, boards, data, fundamentals, market, sentiment, ta, ths  # noqa: E402
 from quant import strategy_loader as SL  # noqa: E402
 from quant.config import load_config  # noqa: E402
 from quant.context import Context  # noqa: E402
@@ -809,6 +809,30 @@ def stock_flow_rank():
 
 
 # ---------------------------------------------------------------- 回测
+# ---------------------------------------------------------------- 观察指标（不是策略）
+WASHOUT = 0.10   # 站上 60 日线的股票比例低于它 = 极度恐慌，见 README 第九轮
+
+
+@app.get("/api/observe")
+def observe():
+    s = STATE.get()
+    ind, T = s.ind, s.T
+    c = ind["close"][[x for x in s.codes if x in ind["close"].columns]]
+    valid = (ind["bars"][c.columns] >= 60) & c.notna()
+    breadth = (c > c.rolling(60).mean()).where(valid).mean(axis=1).dropna()
+    lows = breadth[breadth < WASHOUT]
+    amt = ind["amount"][c.columns].rolling(20).mean().loc[T]
+    eligible = set(c.columns[(amt >= 3e7) & (c.loc[T] >= 3)])
+    acc, q = fundamentals.accel_list(DDIR, eligible)
+    if len(acc):
+        acc["price"] = c.loc[T].reindex(acc["code"]).values
+        acc["ret20"] = (c.loc[T] / c.shift(20).loc[T] - 1).reindex(acc["code"]).values * 100
+    return ok(dict(date=T, breadth=dict(dates=[d.strftime("%Y-%m-%d") for d in breadth.index], pct=(breadth * 100).round(1).tolist(),
+                                        now=breadth.iloc[-1] * 100, threshold=WASHOUT * 100,
+                                        last_low=lows.index[-1].strftime("%Y-%m-%d") if len(lows) else None),
+                   accel=records(acc) if len(acc) else [], quarter=q))
+
+
 # ---------------------------------------------------------------- 盘中提示（只提示、只记录，不下单）
 _WATCH_REASON = {"t": 0, "day": None, "map": {}}
 
