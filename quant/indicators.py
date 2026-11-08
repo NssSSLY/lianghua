@@ -41,20 +41,25 @@ def build(panel, st=()) -> dict:
 
     # 真实昨收：平时=前一交易日收盘；除权日用复权因子还原
     # 数据源的前复权是「减去分红」式的，因子会随股价每天同向变动（甚至算出 ≤0），不是除权。
-    # 真除权：股价没涨而因子上升 >0.5%（分红/送转）；或股价大涨而因子大幅下降（合股）
+    # 按「减去分红」的模型，股价涨 r 时因子会跟着涨约 (1/f - 1)·r；超出这部分 0.5% 以上才算除权（分红/送转），
+    # 这样股价上涨当天的分红也能识别。另外股价大涨而因子大幅下降是合股
     c_prev = c.ffill().shift(1)
     f_ff = f.where(f > 0).ffill().bfill()
     f_ratio = f_ff.shift(1) / f_ff
     f_rise = 1 / f_ratio - 1
     raw_ret = c / c_prev - 1
-    exright = ((f_rise > 0.005) & (raw_ret <= 0)) | ((f_rise < -0.2) & (raw_ret > 0.25))
+    noise = (1 / f_ff.shift(1) - 1).clip(lower=0) * raw_ret.clip(lower=0)
+    exright = ((f_rise - 1.5 * noise > 0.005)) | ((f_rise < -0.2) & (raw_ret > 0.25))
     preclose = c_prev.where(~exright, c_prev * f_ratio)
 
     lim = limit_ratio(panel, st)
     zt_price = round_price(preclose * (1 + lim))
     dt_price = round_price(preclose * (1 - lim))
-    is_zt = (c >= zt_price - 1e-6) & c.notna()
-    is_dt = (c <= dt_price + 1e-6) & c.notna()
+    # 新股上市前 5 个交易日不设涨跌幅（数据起点之前就上市的不受影响）
+    listed_in_data = c.notna().idxmax() > c.index[0]
+    new_ipo = (c.notna().cumsum() <= 5) & listed_in_data
+    is_zt = (c >= zt_price - 1e-6) & c.notna() & ~new_ipo
+    is_dt = (c <= dt_price + 1e-6) & c.notna() & ~new_ipo
     touch_zt = (h >= zt_price - 1e-6) & c.notna()
     broken = touch_zt & ~is_zt  # 炸板
     one_word = (h == l) & c.notna()
