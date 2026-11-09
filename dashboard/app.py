@@ -955,6 +955,15 @@ def on_error(e):
 
 
 if __name__ == "__main__":
+    import os
+    # 默认只监听本机。服务器部署也保持 127.0.0.1，用 SSH 隧道访问（见 deploy/DEPLOY.md）：
+    # 看板能上传并执行策略脚本，绝不能不加防护地开放到公网
+    host = os.environ.get("QUANT_HOST", "127.0.0.1")
+    port = int(os.environ.get("QUANT_PORT", "8686"))
     threading.Thread(target=STATE.get, daemon=True).start()  # 启动时预热
-    print("看板地址：http://127.0.0.1:8686", flush=True)
-    app.run(host="127.0.0.1", port=8686, debug=False, threaded=True)
+    print(f"看板地址：http://{host}:{port}", flush=True)
+    try:
+        from waitress import serve  # 长期运行用 waitress；只能单进程，任务状态和数据缓存都在内存里
+        serve(app, host=host, port=port, threads=8)
+    except ImportError:
+        app.run(host=host, port=port, debug=False, threaded=True)

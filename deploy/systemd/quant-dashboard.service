@@ -1,0 +1,19 @@
+[Unit]
+Description=Quant dashboard (127.0.0.1:8686, access via SSH tunnel)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@ROOT@
+Environment=PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1 TZ=Asia/Shanghai
+Environment=QUANT_HOST=127.0.0.1 QUANT_PORT=8686
+ExecStart=@ROOT@/.venv/bin/python -u dashboard/app.py
+Restart=always
+RestartSec=10
+StandardOutput=append:@ROOT@/logs/dashboard.log
+StandardError=inherit
+
+[Install]
+WantedBy=multi-user.target

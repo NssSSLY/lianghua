@@ -1,0 +1,11 @@
+[Unit]
+Description=Quant after-close sync (archive pools, update data, next-day plan)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=@USER@
+WorkingDirectory=@ROOT@
+ExecStart=/usr/bin/env bash @ROOT@/run_daily.sh
+TimeoutStartSec=3h

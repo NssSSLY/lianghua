@@ -111,6 +111,10 @@ py -3.12 -m venv .venv
 > 用 3.12 是因为 xtquant（QMT 的 Python 库）不支持 3.13 以上版本。
 > 如果开着代理软件，代码会自动对新浪/东财/腾讯直连，不走代理。
 
+### 部署到服务器
+
+想让看板、盘中监控和盘后同步在 Linux 服务器上一直运行，见 [deploy/DEPLOY.md](deploy/DEPLOY.md)：`bash deploy/install.sh` 一键安装，自己电脑用 SSH 隧道访问。
+
 ## 2. 日常使用流程
 
 | 时间 | 操作 |

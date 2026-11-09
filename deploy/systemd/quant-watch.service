@@ -1,0 +1,16 @@
+[Unit]
+Description=Quant intraday limit-up watcher (records and alerts only, never trades)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+WorkingDirectory=@ROOT@
+Environment=PYTHONIOENCODING=utf-8 PYTHONUNBUFFERED=1 TZ=Asia/Shanghai
+# 15:01 收盘、非交易日或手动停止时程序自己正常退出；只有异常崩溃才重启
+ExecStart=@ROOT@/.venv/bin/python -u board_watch.py
+Restart=on-failure
+RestartSec=30
+StandardOutput=append:@ROOT@/logs/board_watch.log
+StandardError=inherit

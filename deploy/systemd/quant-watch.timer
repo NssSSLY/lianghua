@@ -1,0 +1,9 @@
+[Unit]
+Description=Start the intraday watcher at 09:20 on weekdays (Beijing time)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 09:20:00 Asia/Shanghai
+Unit=quant-watch.service
+
+[Install]
+WantedBy=timers.target
