@@ -11,7 +11,7 @@ include_st: true         # 下载并展示同板块 ST 股（看板 ST 涨跌停
 # ---------- 回测 ----------
 backtest:
   start: "2023-01-01"
-  end: "2026-10-23"
+  end: "2026-11-06"
   init_cash: 50000        # 初始资金（小资金）
   max_positions: 2        # 最多同时持仓只数
   commission: 0.00025     # 佣金费率（双边）

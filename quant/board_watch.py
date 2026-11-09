@@ -42,7 +42,7 @@ SEALED_FILL = 0.3        # 悲观假设：封住的票只有 3 成能排上队
 
 # ---------------------------------------------------------------- 行情
 def _sym(code):
-    return ("sh" if code.startswith("6") else "sz") + code
+    return ("sh" if code.startswith(("5", "6")) else "sz") + code  # 5 开头是沪市 ETF
 
 
 def parse_quote(line: str):
@@ -59,6 +59,7 @@ def parse_quote(line: str):
         except ValueError:
             return float("nan")
     return dict(code=f[2], name=f[1], price=num(3), pre_close=num(4), open=num(5), low=num(34), high=num(33),
+                volume=num(6) * 100, amount=num(37) * 1e4,
                 bid1=num(9), bid1_vol=num(10) * 100, ask1=num(19), ask1_vol=num(20) * 100, stamp=f[30],
                 zt=num(47), dt=num(48), float_share=num(72))
 
